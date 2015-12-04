@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davrux/oauth2/internal"
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2/internal"
 )
 
 // expiryDelta determines how earlier a token should be considered
@@ -151,6 +151,15 @@ func tokenFromInternal(t *internal.Token) *Token {
 // with an error..
 func retrieveToken(ctx context.Context, c *Config, v url.Values) (*Token, error) {
 	tk, err := internal.RetrieveToken(ctx, c.ClientID, c.ClientSecret, c.Endpoint.TokenURL, v)
+	if err != nil {
+		return nil, err
+	}
+	return tokenFromInternal(tk), nil
+}
+
+// Like retrieveToken, but uses the client@realm format for the client id.
+func retrieveTokenRealmClient(ctx context.Context, c *Config, v url.Values) (*Token, error) {
+	tk, err := internal.RetrieveToken(ctx, c.ClientAtRealm(), c.ClientSecret, c.Endpoint.TokenURL, v)
 	if err != nil {
 		return nil, err
 	}

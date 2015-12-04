@@ -469,3 +469,34 @@ func TestConfigClientWithToken(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+func TestClientAtRealm(t *testing.T) {
+	c := Config{
+		ClientID: "clientID",
+		Realm:    "Realm",
+	}
+	if c.ClientAtRealm() != "clientID@Realm" {
+		t.Errorf("ClientAtRealm must return 'client@Realm'")
+	}
+}
+
+func TestExtract(t *testing.T) {
+	var exTests = []struct {
+		key    string
+		raw    string
+		result string
+	}{
+		{"realm", `Bearer realm="12345678-ffff-4444-aadd-9f8ebab9791b"`, "12345678-ffff-4444-aadd-9f8ebab9791b"},
+		{"client_id", `client_id="00000003-0000-0ff1-ce00-000000000000"`, "00000003-0000-0ff1-ce00-000000000000"},
+		{"client_id", `client_id="00000003-0000-0ff1-ce00-000000000000"test`, "00000003-0000-0ff1-ce00-000000000000"},
+		{"realm", `Bearer realm="12345678-ffff-4444-aadd-9f8ebab9791b",client_id="00000003-0000-0ff1-ce00-000000000000",trusted_issuers="00000001-0000-0000-c000-000000000000@*,https://sts.windows.net/*/,00000003-0000-0ff1-ce00-000000000000@90140122-8516-11e1-8eff-49304924019b",authorization_uri="https://login.windows.net/common/oauth2/authorize"`, "12345678-ffff-4444-aadd-9f8ebab9791b"},
+		{"client_id", `Bearer realm="12345678-ffff-4444-aadd-9f8ebab9791b",client_id="00000003-0000-0ff1-ce00-000000000000",trusted_issuers="00000001-0000-0000-c000-000000000000@*,https://sts.windows.net/*/,00000003-0000-0ff1-ce00-000000000000@90140122-8516-11e1-8eff-49304924019b",authorization_uri="https://login.windows.net/common/oauth2/authorize"`, "00000003-0000-0ff1-ce00-000000000000"},
+	}
+
+	for _, tt := range exTests {
+		result := extract(tt.key, tt.raw)
+		if result != tt.result {
+			t.Errorf("Extract failed: %s must be %s", result, tt.result)
+		}
+	}
+}

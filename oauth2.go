@@ -5,18 +5,19 @@
 // Package oauth2 provides support for making
 // OAuth2 authorized and authenticated HTTP requests.
 // It can additionally grant authorization with Bearer JWT.
-package oauth2 // import "golang.org/x/oauth2"
+package oauth2 // import "github.com/davrux/oauth2"
 
 import (
 	"bytes"
 	"errors"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 
+	"github.com/davrux/oauth2/internal"
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2/internal"
 )
 
 // NoContext is the default context you should supply if not using
@@ -56,6 +57,26 @@ type Config struct {
 
 	// Scope specifies optional requested permissions.
 	Scopes []string
+
+	// Realm is the realm of the Sharepoint site.
+	//
+	// To retrieve it do a GET request:
+	// https://mysite.sharepoint.com/_vti_bin/client.svc/ with header
+	// "Authorization: Bearer"
+	// The returned "WWW-Authenticate" header contains:
+	// Bearer realm="realm UUID"
+	Realm string
+
+	// Site is Sharepoint site
+	Site string
+
+	// AppCtxSender is the sender of the token.
+	// ACS	      00000001-0000-0000-c000-000000000000
+	// Exchange   00000002-0000-0ff1-ce00-000000000000
+	// SharePoint 00000003-0000-0ff1-ce00-000000000000
+	// Lync	      00000004-0000-0ff1-ce00-000000000000
+	// Workflow	  00000005-0000-0000-c000-000000000000
+	AppCtxSender string
 }
 
 // A TokenSource is anything that can return a token.
@@ -71,6 +92,15 @@ type TokenSource interface {
 type Endpoint struct {
 	AuthURL  string
 	TokenURL string
+}
+
+// SharepointOnlineEndpoint returns the Endpoints for a Sharepoint
+// online site.
+func SharepointOnlineEndpoint(site, realm string) Endpoint {
+	return Endpoint{
+		AuthURL:  "https://" + site + "/_layouts/15/OAuthAuthorize.aspx",
+		TokenURL: "https://accounts.accesscontrol.windows.net/" + realm + "/tokens/OAuth/2",
+	}
 }
 
 var (
@@ -107,6 +137,17 @@ func (p setParam) setValue(m url.Values) { m.Set(p.k, p.v) }
 // to a provider's authorization endpoint.
 func SetAuthURLParam(key, value string) AuthCodeOption {
 	return setParam{key, value}
+}
+
+// ClientAtRealm returns the ClientID@Realm needed in Sharepoint OAuth requests.
+func (c *Config) ClientAtRealm() string {
+	return c.ClientID + "@" + c.Realm
+}
+
+// SiteAuthUrl returns the default auth URL.
+// For example: https://site/_layouts/15/OAuthAuthorize.aspx
+func (c *Config) SiteAuthUrl() string {
+	return "https://" + c.Site + "/_layouts/15/OAuthAuthorize.aspx"
 }
 
 // AuthCodeURL returns a URL to OAuth 2.0 provider's consent page
@@ -177,6 +218,80 @@ func (c *Config) Exchange(ctx context.Context, code string) (*Token, error) {
 		"code":         {code},
 		"redirect_uri": internal.CondVal(c.RedirectURL),
 		"scope":        internal.CondVal(strings.Join(c.Scopes, " ")),
+	})
+}
+
+// sharepoint resource for auth.
+func (c *Config) sharepointResource() string {
+	return c.AppCtxSender + "/" + c.Site + "@" + c.Realm
+}
+
+// Extracts a value for key from raw.
+// key has the format key="value".
+// Value must not contain quotes.
+func extract(key, raw string) string {
+	re := regexp.MustCompile(key + "=\"([^\"]*)\"")
+	found := re.FindStringSubmatch(raw)
+	if len(found) != 2 {
+		return ""
+	}
+
+	return found[1]
+}
+
+// QuerySharepointRealm queries a Sharepoint server for realm and
+// AppCtxSender.
+func (c *Config) QuerySharepointRealm() error {
+	if c.Site == "" {
+		return errors.New("no site defined.")
+	}
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://"+c.Site+"/_vti_bin/client.svc/", nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	authHeader := resp.Header.Get("WWW-Authenticate")
+	if authHeader == "" {
+		return errors.New("WWW-Authenticate header not retuned")
+	}
+	c.Realm = extract("realm", authHeader)
+	c.AppCtxSender = extract("client_id", authHeader)
+
+	if c.Realm == "" {
+		return errors.New("unable to extract realm from WWW-Authenticate")
+	}
+	return nil
+}
+
+// ExchangeWithRealm converts an authorization code into a token.
+// This Version is like Exchange, but adds all needed params for
+// Sharepoint.
+//
+// It is used after a resource provider redirects the user back
+// to the Redirect URI (the URL obtained from AuthCodeURL).
+//
+// The HTTP client to use is derived from the context.
+// If a client is not provided via the context, http.DefaultClient is used.
+//
+// The code will be in the *http.Request.FormValue("code"). Before
+// calling Exchange, be sure to validate FormValue("state").
+func (c *Config) ExchangeWithRealm(ctx context.Context, code string) (*Token, error) {
+	return retrieveTokenRealmClient(ctx, c, url.Values{
+		"grant_type":   {"authorization_code"},
+		"code":         {code},
+		"redirect_uri": internal.CondVal(c.RedirectURL),
+		"scope":        internal.CondVal(strings.Join(c.Scopes, " ")),
+		// Needed for Sharepoint
+		"client_secret": {c.ClientSecret},
+		"resource":      {c.sharepointResource()},
 	})
 }
 

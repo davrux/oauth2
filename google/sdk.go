@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/davrux/oauth2"
+	"github.com/davrux/oauth2/internal"
 	"golang.org/x/net/context"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/internal"
 )
 
 type sdkCredentials struct {

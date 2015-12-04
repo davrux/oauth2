@@ -1,5 +1,8 @@
 # OAuth2 for Go
 
+This package is a fork of the original oauth2 package to support the
+broken Microsoft Sharepoint OAuth implementation.
+
 [![Build Status](https://travis-ci.org/golang/oauth2.svg?branch=master)](https://travis-ci.org/golang/oauth2)
 
 oauth2 package contains a client implementation for OAuth 2.0 spec.
@@ -7,7 +10,7 @@ oauth2 package contains a client implementation for OAuth 2.0 spec.
 ## Installation
 
 ~~~~
-go get golang.org/x/oauth2
+go get github.com/davrux/oauth2
 ~~~~
 
 See godoc for further documentation and examples.
@@ -40,8 +43,8 @@ with the `oauth2` package.
 
 	import (
 		"golang.org/x/net/context"
-		"golang.org/x/oauth2"
-		"golang.org/x/oauth2/google"
+		"github.com/davrux/oauth2"
+		"github.com/davrux/oauth2/google"
 		newappengine "google.golang.org/appengine"
 		newurlfetch "google.golang.org/appengine/urlfetch"
 
