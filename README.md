@@ -13,55 +13,57 @@ oauth2 package contains a client implementation for OAuth 2.0 spec.
 go get github.com/davrux/oauth2
 ~~~~
 
-See godoc for further documentation and examples.
-
-* [godoc.org/golang.org/x/oauth2](http://godoc.org/golang.org/x/oauth2)
-* [godoc.org/golang.org/x/oauth2/google](http://godoc.org/golang.org/x/oauth2/google)
+See [https://github.com/golang/oauth2](https://github.com/golang/oauth2) for the original
+package.
 
 
-## App Engine
+## Usage
 
-In change 96e89be (March 2015) we removed the `oauth2.Context2` type in favor
-of the [`context.Context`](https://golang.org/x/net/context#Context) type from
-the `golang.org/x/net/context` package
+    import "github.com/davrux/oauth2"
 
-This means its no longer possible to use the "Classic App Engine"
-`appengine.Context` type with the `oauth2` package. (You're using
-Classic App Engine if you import the package `"appengine"`.)
+    var sharepointConf = &oauth2.Config{
+	    ClientID:     "client id",
+	    ClientSecret: "secret key",
+	    Scopes: []string{
+		    "Web.Read",
+		    "Web.Write",
+		    "Web.Manage",
+		    "List.Read",
+		    "List.Write",
+		    "List.Manage",
+		    "AllSites.Read",
+		    "AllSites.Write",
+		    "AllSites.Manage",
+	    },
+	    RedirectURL: "https://localhost/authorize",
+	    Site:        "allgeieritsolutions.sharepoint.com",
+    }
 
-To work around this, you may use the new `"google.golang.org/appengine"`
-package. This package has almost the same API as the `"appengine"` package,
-but it can be fetched with `go get` and used on "Managed VMs" and well as
-Classic App Engine.
-
-See the [new `appengine` package's readme](https://github.com/golang/appengine#updating-a-go-app-engine-app)
-for information on updating your app.
-
-If you don't want to update your entire app to use the new App Engine packages,
-you may use both sets of packages in parallel, using only the new packages
-with the `oauth2` package.
-
-	import (
-		"golang.org/x/net/context"
-		"github.com/davrux/oauth2"
-		"github.com/davrux/oauth2/google"
-		newappengine "google.golang.org/appengine"
-		newurlfetch "google.golang.org/appengine/urlfetch"
-
-		"appengine"
-	)
-
-	func handler(w http.ResponseWriter, r *http.Request) {
-		var c appengine.Context = appengine.NewContext(r)
-		c.Infof("Logging a message with the old package")
-
-		var ctx context.Context = newappengine.NewContext(r)
-		client := &http.Client{
-			Transport: &oauth2.Transport{
-				Source: google.AppEngineTokenSource(ctx, "scope"),
-				Base:   &newurlfetch.Transport{Context: ctx},
-			},
-		}
-		client.Get("...")
+    // request Sharepoint realm
+	err := sharepointConf.QuerySharepointRealm()
+	if err != nil {
+        ...
 	}
 
+    // set auth endpoints depending on site and realm
+	sharepointConf.Endpoint = oauth2.SharepointOnlineEndpoint(sharepointConf.Site, sharepointConf.Realm)
+
+    // Generate URL for OAuth. Le the user visit the site
+	signinURL := sharepointConf.AuthCodeURL("state", oauth2.ApprovalForce)
+
+    ...
+
+    // In the handler for redirect URL
+	tok, err := sharepointConf.ExchangeWithRealm(oauth2.NoContext, code)
+	if err != nil {
+        ...
+	}
+
+	client := sharepointConf.Client(oauth2.NoContext, tok)
+	resp, err := client.Get(...)
+
+
+## Register Sharepoint App
+
+To register a Sharepoint App go to
+https://your_site_name.com/_layouts/15/appregnew.aspx.
