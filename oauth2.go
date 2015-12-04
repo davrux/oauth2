@@ -338,18 +338,23 @@ func (tf *tokenRefresher) Token() (*Token, error) {
 		return nil, errors.New("oauth2: token expired and refresh token is not set")
 	}
 
-	// normal oAuth token
-	tfunc := retrieveToken
-
+	var err error
+	var tk *Token
 	// If we have a realm, use it.
 	if tf.conf.Realm != "" {
-		tfunc = retrieveTokenRealmClient
+		tk, err = retrieveTokenRealmClient(tf.ctx, tf.conf, url.Values{
+			"grant_type":    {"refresh_token"},
+			"refresh_token": {tf.refreshToken},
+			// Needed for Sharepoint
+			"client_secret": {tf.conf.ClientSecret},
+			"resource":      {tf.conf.sharepointResource()},
+		})
+	} else {
+		tk, err = retrieveToken(tf.ctx, tf.conf, url.Values{
+			"grant_type":    {"refresh_token"},
+			"refresh_token": {tf.refreshToken},
+		})
 	}
-
-	tk, err := tfunc(tf.ctx, tf.conf, url.Values{
-		"grant_type":    {"refresh_token"},
-		"refresh_token": {tf.refreshToken},
-	})
 
 	if err != nil {
 		return nil, err
