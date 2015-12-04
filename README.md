@@ -3,19 +3,15 @@
 This package is a fork of the original oauth2 package to support the
 broken Microsoft Sharepoint OAuth implementation.
 
-[![Build Status](https://travis-ci.org/golang/oauth2.svg?branch=master)](https://travis-ci.org/golang/oauth2)
+See [https://github.com/golang/oauth2](https://github.com/golang/oauth2) for the original
+package.
 
-oauth2 package contains a client implementation for OAuth 2.0 spec.
 
 ## Installation
 
 ~~~~
 go get github.com/davrux/oauth2
 ~~~~
-
-See [https://github.com/golang/oauth2](https://github.com/golang/oauth2) for the original
-package.
-
 
 ## Usage
 
@@ -48,7 +44,7 @@ package.
     // set auth endpoints depending on site and realm
 	sharepointConf.Endpoint = oauth2.SharepointOnlineEndpoint(sharepointConf.Site, sharepointConf.Realm)
 
-    // Generate URL for OAuth. Le the user visit the site
+    // Generate URL for OAuth. Let the user visit the site
 	signinURL := sharepointConf.AuthCodeURL("state", oauth2.ApprovalForce)
 
     ...
