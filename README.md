@@ -1,7 +1,7 @@
 # OAuth2 for Go
 
 This package is a fork of the original oauth2 package to support the
-broken Microsoft Sharepoint OAuth implementation.
+Microsoft Sharepoint OAuth implementation.
 
 See [https://github.com/golang/oauth2](https://github.com/golang/oauth2) for the original
 package.
@@ -32,7 +32,7 @@ go get github.com/davrux/oauth2
 		    "AllSites.Manage",
 	    },
 	    RedirectURL: "https://localhost/authorize",
-	    Site:        "allgeieritsolutions.sharepoint.com",
+	    Site:        "mysite.sharepoint.com",
     }
 
     // request Sharepoint realm
