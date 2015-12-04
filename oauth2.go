@@ -75,7 +75,7 @@ type Config struct {
 	// Exchange   00000002-0000-0ff1-ce00-000000000000
 	// SharePoint 00000003-0000-0ff1-ce00-000000000000
 	// Lync	      00000004-0000-0ff1-ce00-000000000000
-	// Workflow	  00000005-0000-0000-c000-000000000000
+	// Workflow   00000005-0000-0000-c000-000000000000
 	AppCtxSender string
 }
 
@@ -338,7 +338,15 @@ func (tf *tokenRefresher) Token() (*Token, error) {
 		return nil, errors.New("oauth2: token expired and refresh token is not set")
 	}
 
-	tk, err := retrieveToken(tf.ctx, tf.conf, url.Values{
+	// normal oAuth token
+	tfunc := retrieveToken
+
+	// If we have a realm, use it.
+	if tf.conf.Realm != "" {
+		tfunc = retrieveTokenRealmClient
+	}
+
+	tk, err := tfunc(tf.ctx, tf.conf, url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {tf.refreshToken},
 	})
