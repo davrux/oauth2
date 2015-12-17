@@ -32,7 +32,7 @@ go get github.com/davrux/oauth2
 		    "AllSites.Manage",
 	    },
 	    RedirectURL: "https://localhost/authorize",
-	    Site:        "mysite.sharepoint.com",
+	    Host:        "mysite.sharepoint.com",
     }
 
     // request Sharepoint realm
@@ -42,7 +42,7 @@ go get github.com/davrux/oauth2
 	}
 
     // set auth endpoints depending on site and realm
-	sharepointConf.Endpoint = oauth2.SharepointOnlineEndpoint(sharepointConf.Site, sharepointConf.Realm)
+	sharepointConf.Endpoint = oauth2.SharepointOnlineEndpoint(sharepointConf.Host, sharepointConf.Realm)
 
     // Generate URL for OAuth. Let the user visit the site
 	signinURL := sharepointConf.AuthCodeURL("state", oauth2.ApprovalForce)

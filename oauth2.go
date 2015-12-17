@@ -67,8 +67,8 @@ type Config struct {
 	// Bearer realm="realm UUID"
 	Realm string
 
-	// Site is Sharepoint site
-	Site string
+	// Host is Sharepoint site
+	Host string
 
 	// AppCtxSender is the sender of the token.
 	// ACS	      00000001-0000-0000-c000-000000000000
@@ -144,10 +144,10 @@ func (c *Config) ClientAtRealm() string {
 	return c.ClientID + "@" + c.Realm
 }
 
-// SiteAuthUrl returns the default auth URL.
+// HostAuthUrl returns the default auth URL.
 // For example: https://site/_layouts/15/OAuthAuthorize.aspx
-func (c *Config) SiteAuthUrl() string {
-	return "https://" + c.Site + "/_layouts/15/OAuthAuthorize.aspx"
+func (c *Config) HostAuthUrl() string {
+	return "https://" + c.Host + "/_layouts/15/OAuthAuthorize.aspx"
 }
 
 // AuthCodeURL returns a URL to OAuth 2.0 provider's consent page
@@ -223,7 +223,7 @@ func (c *Config) Exchange(ctx context.Context, code string) (*Token, error) {
 
 // sharepoint resource for auth.
 func (c *Config) sharepointResource() string {
-	return c.AppCtxSender + "/" + c.Site + "@" + c.Realm
+	return c.AppCtxSender + "/" + c.Host + "@" + c.Realm
 }
 
 // Extracts a value for key from raw.
@@ -242,12 +242,12 @@ func extract(key, raw string) string {
 // QuerySharepointRealm queries a Sharepoint server for realm and
 // AppCtxSender.
 func (c *Config) QuerySharepointRealm() error {
-	if c.Site == "" {
+	if c.Host == "" {
 		return errors.New("no site defined.")
 	}
 
 	client := &http.Client{}
-	req, err := http.NewRequest("GET", "https://"+c.Site+"/_vti_bin/client.svc/", nil)
+	req, err := http.NewRequest("GET", "https://"+c.Host+"/_vti_bin/client.svc/", nil)
 	if err != nil {
 		return err
 	}
